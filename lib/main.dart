@@ -147,17 +147,11 @@ class _MyHomePageState extends State<MyHomePage> {
           image.height - 75, kakumoji3,
           color: 0xff008cff, rightJustify: true);
 
-      if (Platform.isAndroid) {
-        Directory tempDir = await getTemporaryDirectory();
-        String tempPath =
-            "${tempDir.path}/${MotoPath.split("/").last}.moji.jpg";
-        File outfile_a = File(tempPath);
-        await outfile_a.writeAsBytes(imgLib.encodeJpg(image));
-        Share.shareXFiles([XFile(tempPath)], text: '文字入りの写真');
-      } else {
-        File outfile = File("$MotoPath.moji.jpg");
-        await outfile.writeAsBytes(imgLib.encodeJpg(image));
-      }
+      Directory tempDir = await getTemporaryDirectory();
+      String tempPath = "${tempDir.path}/${MotoPath.split("/").last}.moji.jpg";
+      File outfile_a = File(tempPath);
+      await outfile_a.writeAsBytes(imgLib.encodeJpg(image));
+      Share.shareXFiles([XFile(tempPath)], text: '文字入りの写真');
 
       setState(() {
         FlutterToastr.show("終わったぜ", context,
