@@ -139,13 +139,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
       imgLib.drawString(image!, bfDigitalseven, image.width - 32,
           image.height - 215, kakumoji,
-          color: 0xff008cff, rightJustify: true);
+          color: 0xff00c0ff, rightJustify: true);
       imgLib.drawString(image!, bfDigitalseven, image.width - 32,
           image.height - 145, kakumoji2,
-          color: 0xff008cff, rightJustify: true);
+          color: 0xff00c0ff, rightJustify: true);
       imgLib.drawString(image!, bfDigitalseven, image.width - 32,
           image.height - 75, kakumoji3,
-          color: 0xff008cff, rightJustify: true);
+          color: 0xff00c0ff, rightJustify: true);
 
       Directory tempDir = await getTemporaryDirectory();
       String tempPath = "${tempDir.path}/${MotoPath.split("/").last}.moji.jpg";
