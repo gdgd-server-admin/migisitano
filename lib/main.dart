@@ -11,6 +11,7 @@ import 'package:flutter_toastr/flutter_toastr.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -41,6 +42,40 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  @override
+  void initState() {
+    super.initState();
+
+    _loadConfig();
+  }
+
+  void _loadConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (prefs.containsKey("insertName")) {
+        _nameConfigController.text = prefs.getString("insertName")!;
+      }
+      if (prefs.containsKey("defaultCheckName")) {
+        _out_name = prefs.getBool("defaultCheckName");
+      }
+      if (prefs.containsKey("defaultCheckStamp")) {
+        _out_stamp = prefs.getBool("defaultCheckStamp");
+      }
+      if (prefs.containsKey("defaultCheckMake")) {
+        _out_make = prefs.getBool("defaultCheckMake");
+      }
+      if (prefs.containsKey("defaultCheckModel")) {
+        _out_model = prefs.getBool("defaultCheckModel");
+      }
+      if (prefs.containsKey("defaultCheckLens")) {
+        _out_lens = prefs.getBool("defaultCheckLens");
+      }
+      if (prefs.containsKey("defaultCheckParam")) {
+        _out_param = prefs.getBool("defaultCheckParam");
+      }
+    });
+  }
+
   File? pickedImage;
 
   String Make = "";
@@ -109,6 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
         } else {
           Lens = "";
         }
+        _lensConfigController.text = Lens;
         if (tags.containsKey("EXIF ISOSpeedRatings")) {
           ISOSpeedRatings = tags["EXIF ISOSpeedRatings"]!.printable.trimRight();
         }
@@ -141,7 +177,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
 
       if (_out_name == true) {
-        kakikomi_list.add('lin@pixelfed.gdgd.jp.net');
+        kakikomi_list.add(_nameConfigController.text);
       }
 
       List<String> kakikomi3List = [];
@@ -159,7 +195,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       }
       if (_out_lens == true) {
-        kakikomi3List.add("lens: $Lens");
+        kakikomi3List.add("lens: ${_lensConfigController.text}");
       }
       if (_out_param == true) {
         kakikomi3List.add("[ F$FNumber $ExposureTime ISO$ISOSpeedRatings ]");
@@ -175,9 +211,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
       var y_offset = 75;
       for (var strrow in kakikomi_list.reversed) {
-        imgLib.drawString(image!, bfDigitalseven, image.width - 32,
-            image.height - y_offset, strrow,
-            color: 0xff00c0ff, rightJustify: true);
+        imgLib.drawString(
+          image!,
+          bfDigitalseven,
+          image.width - 32,
+          image.height - y_offset,
+          strrow.replaceAll("(", "[").replaceAll(")", "]"),
+          color: 0xff00c0ff,
+          rightJustify: true,
+        );
         y_offset += 70;
       }
 
@@ -246,6 +288,24 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  final TextEditingController _nameConfigController = TextEditingController();
+  final TextEditingController _lensConfigController = TextEditingController();
+
+  void _writeConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString("insertName", _nameConfigController.text);
+    prefs.setBool("defaultCheckName", _out_name!);
+    prefs.setBool("defaultCheckStamp", _out_stamp!);
+    prefs.setBool("defaultCheckMake", _out_make!);
+    prefs.setBool("defaultCheckModel", _out_model!);
+    prefs.setBool("defaultCheckLens", _out_lens!);
+    prefs.setBool("defaultCheckParam", _out_param!);
+    setState(() {
+      FlutterToastr.show("設定は確かに保存したぜ", context,
+          duration: FlutterToastr.lengthShort, position: FlutterToastr.bottom);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -267,6 +327,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       onPressed: _selectImage,
                       child: const Text("画像選択"),
                     ),
+                  ),
+                  const SizedBox(
+                    height: 20,
                   ),
                   CheckboxListTile(
                     activeColor: Colors.blue,
@@ -319,6 +382,19 @@ class _MyHomePageState extends State<MyHomePage> {
                     value: _out_param,
                     onChanged: _handleCheckboxOutParam,
                   ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  TextField(
+                    controller: _lensConfigController,
+                    decoration: const InputDecoration(
+                      hintText: '使ったレンズ',
+                      labelText: 'レンズ情報上書き',
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
                   Padding(
                     padding: const EdgeInsets.all(10),
                     child: ElevatedButton(
@@ -331,6 +407,76 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ],
         ),
+      ),
+      drawer: Drawer(
+        child: ListView(children: [
+          const SizedBox(
+            height: 60,
+            child: DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.lightBlue,
+              ),
+              child: Text(
+                '設定のたぐい',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+          TextField(
+            controller: _nameConfigController,
+            decoration: const InputDecoration(
+              hintText: '素敵な名前',
+              labelText: 'ネーム',
+            ),
+          ),
+          const Text("デフォルトチェック"),
+          CheckboxListTile(
+            activeColor: Colors.blue,
+            title: const Text("ネームを入れる"),
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _out_name,
+            onChanged: _handleCheckboxOutName,
+          ),
+          CheckboxListTile(
+            activeColor: Colors.blue,
+            title: const Text("撮影日時"),
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _out_stamp,
+            onChanged: _handleCheckboxOutStamp,
+          ),
+          CheckboxListTile(
+            activeColor: Colors.blue,
+            title: const Text("メーカー"),
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _out_make,
+            onChanged: _handleCheckboxOutMake,
+          ),
+          CheckboxListTile(
+            activeColor: Colors.blue,
+            title: const Text("カメラ"),
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _out_model,
+            onChanged: _handleCheckboxOutModel,
+          ),
+          CheckboxListTile(
+            activeColor: Colors.blue,
+            title: const Text("レンズ"),
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _out_lens,
+            onChanged: _handleCheckboxOutLens,
+          ),
+          CheckboxListTile(
+            activeColor: Colors.blue,
+            title: const Text("撮影条件"),
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _out_param,
+            onChanged: _handleCheckboxOutParam,
+          ),
+          ElevatedButton(
+            onPressed: _writeConfig,
+            child: const Text("設定のたぐいを保存"),
+          ),
+        ]),
       ),
     );
   }
