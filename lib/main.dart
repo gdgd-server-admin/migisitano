@@ -45,6 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String Make = "";
   String Model = "";
+  String Lens = "";
   String ISOSpeedRatings = "";
   String ExposureTime = "";
   String FNumber = "";
@@ -103,6 +104,11 @@ class _MyHomePageState extends State<MyHomePage> {
         if (tags.containsKey("Image Model")) {
           Model = tags["Image Model"]!.printable.trimRight();
         }
+        if (tags.containsKey("EXIF LensModel")) {
+          Lens = tags["EXIF LensModel"]!.printable.trimRight();
+        } else {
+          Lens = "";
+        }
         if (tags.containsKey("EXIF ISOSpeedRatings")) {
           ISOSpeedRatings = tags["EXIF ISOSpeedRatings"]!.printable.trimRight();
         }
@@ -127,30 +133,58 @@ class _MyHomePageState extends State<MyHomePage> {
     if (pickedImage != null) {
       imgLib.Image? image =
           imgLib.decodeImage(File(MotoPath).readAsBytesSync());
-      String kakumoji = TimeStamp;
-      String kakumoji2 = 'lin@pixelfed.gdgd.jp.net';
-      String kakumoji3 =
-          'camera: $Make $Model [ F$FNumber $ExposureTime ISO$ISOSpeedRatings ]';
+
+      List<String> kakikomi_list = [];
+
+      if (_out_stamp == true) {
+        kakikomi_list.add(TimeStamp);
+      }
+
+      if (_out_name == true) {
+        kakikomi_list.add('lin@pixelfed.gdgd.jp.net');
+      }
+
+      List<String> kakikomi3List = [];
+      if (_out_model == true) {
+        String bodyHeader = "";
+        if (_out_lens == true) {
+          bodyHeader = "body:";
+        } else {
+          bodyHeader = "camera:";
+        }
+        if (_out_make == true) {
+          kakikomi3List.add("$bodyHeader $Make $Model");
+        } else {
+          kakikomi3List.add("$bodyHeader $Model");
+        }
+      }
+      if (_out_lens == true) {
+        kakikomi3List.add("lens: $Lens");
+      }
+      if (_out_param == true) {
+        kakikomi3List.add("[ F$FNumber $ExposureTime ISO$ISOSpeedRatings ]");
+      }
+      if (kakikomi3List.isNotEmpty) {
+        kakikomi_list.add(kakikomi3List.join(' '));
+      }
 
       var digitalseven = await rootBundle.load("assets/fonts/digital7.zip");
 
       var bfDigitalseven =
           imgLib.BitmapFont.fromZip(digitalseven.buffer.asUint8List());
 
-      imgLib.drawString(image!, bfDigitalseven, image.width - 32,
-          image.height - 215, kakumoji,
-          color: 0xff00c0ff, rightJustify: true);
-      imgLib.drawString(image!, bfDigitalseven, image.width - 32,
-          image.height - 145, kakumoji2,
-          color: 0xff00c0ff, rightJustify: true);
-      imgLib.drawString(image!, bfDigitalseven, image.width - 32,
-          image.height - 75, kakumoji3,
-          color: 0xff00c0ff, rightJustify: true);
+      var y_offset = 75;
+      for (var strrow in kakikomi_list.reversed) {
+        imgLib.drawString(image!, bfDigitalseven, image.width - 32,
+            image.height - y_offset, strrow,
+            color: 0xff00c0ff, rightJustify: true);
+        y_offset += 70;
+      }
 
       Directory tempDir = await getTemporaryDirectory();
       String tempPath = "${tempDir.path}/${MotoPath.split("/").last}.moji.jpg";
       File outfile_a = File(tempPath);
-      await outfile_a.writeAsBytes(imgLib.encodeJpg(image));
+      await outfile_a.writeAsBytes(imgLib.encodeJpg(image!));
       Share.shareXFiles([XFile(tempPath)], text: '文字入りの写真');
 
       setState(() {
@@ -170,6 +204,48 @@ class _MyHomePageState extends State<MyHomePage> {
             : const Center(child: Text("No Image")));
   }
 
+  bool? _out_name = true;
+  void _handleCheckboxOutName(bool? e) {
+    setState(() {
+      _out_name = e;
+    });
+  }
+
+  bool? _out_stamp = true;
+  void _handleCheckboxOutStamp(bool? e) {
+    setState(() {
+      _out_stamp = e;
+    });
+  }
+
+  bool? _out_make = true;
+  void _handleCheckboxOutMake(bool? e) {
+    setState(() {
+      _out_make = e;
+    });
+  }
+
+  bool? _out_model = true;
+  void _handleCheckboxOutModel(bool? e) {
+    setState(() {
+      _out_model = e;
+    });
+  }
+
+  bool? _out_lens = true;
+  void _handleCheckboxOutLens(bool? e) {
+    setState(() {
+      _out_lens = e;
+    });
+  }
+
+  bool? _out_param = true;
+  void _handleCheckboxOutParam(bool? e) {
+    setState(() {
+      _out_param = e;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -177,49 +253,81 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          children: [
             _imageViewer(),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: ElevatedButton(
-                    onPressed: _selectImage,
-                    child: const Text("画像選択"),
+            SizedBox(
+              width: 400,
+              child: ListView(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: ElevatedButton(
+                      onPressed: _selectImage,
+                      child: const Text("画像選択"),
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: Text(Make),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: Text(Model),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: Text(ISOSpeedRatings),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: Text(ExposureTime),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: Text(FNumber),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: ElevatedButton(
-                    onPressed: _writeImage,
-                    child: const Text("文字入れ保存"),
+                  CheckboxListTile(
+                    activeColor: Colors.blue,
+                    title: const Text("ネームを入れる"),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: _out_name,
+                    onChanged: _handleCheckboxOutName,
                   ),
-                ),
-              ],
+                  CheckboxListTile(
+                    activeColor: Colors.blue,
+                    title:
+                        Row(children: [const Text("撮影日時："), Text(TimeStamp)]),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: _out_stamp,
+                    onChanged: _handleCheckboxOutStamp,
+                  ),
+                  CheckboxListTile(
+                    activeColor: Colors.blue,
+                    title: Row(children: [const Text("メーカー："), Text(Make)]),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: _out_make,
+                    onChanged: _handleCheckboxOutMake,
+                  ),
+                  CheckboxListTile(
+                    activeColor: Colors.blue,
+                    title: Row(children: [const Text("カメラ："), Text(Model)]),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: _out_model,
+                    onChanged: _handleCheckboxOutModel,
+                  ),
+                  CheckboxListTile(
+                    activeColor: Colors.blue,
+                    title: Row(children: [const Text("レンズ："), Text(Lens)]),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: _out_lens,
+                    onChanged: _handleCheckboxOutLens,
+                  ),
+                  CheckboxListTile(
+                    activeColor: Colors.blue,
+                    title: Row(children: [
+                      const Text("撮影条件：[ F"),
+                      Text(FNumber),
+                      const Text(" "),
+                      Text(ExposureTime),
+                      const Text(" ISO"),
+                      Text(ISOSpeedRatings),
+                      const Text(" ]"),
+                    ]),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: _out_param,
+                    onChanged: _handleCheckboxOutParam,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: ElevatedButton(
+                      onPressed: _writeImage,
+                      child: const Text("文字入れ保存"),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
