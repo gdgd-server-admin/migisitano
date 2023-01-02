@@ -73,6 +73,31 @@ class _MyHomePageState extends State<MyHomePage> {
       if (prefs.containsKey("defaultCheckParam")) {
         _out_param = prefs.getBool("defaultCheckParam");
       }
+
+      // モデル固有の設定を呼び出す
+      if (Model != "") {
+        if (prefs.containsKey("insertName_$Model")) {
+          _nameConfigController.text = prefs.getString("insertName_$Model")!;
+        }
+        if (prefs.containsKey("defaultCheckName_$Model")) {
+          _out_name = prefs.getBool("defaultCheckName_$Model");
+        }
+        if (prefs.containsKey("defaultCheckStamp_$Model")) {
+          _out_stamp = prefs.getBool("defaultCheckStamp_$Model");
+        }
+        if (prefs.containsKey("defaultCheckMake_$Model")) {
+          _out_make = prefs.getBool("defaultCheckMake_$Model");
+        }
+        if (prefs.containsKey("defaultCheckModel_$Model")) {
+          _out_model = prefs.getBool("defaultCheckModel_$Model");
+        }
+        if (prefs.containsKey("defaultCheckLens_$Model")) {
+          _out_lens = prefs.getBool("defaultCheckLens_$Model");
+        }
+        if (prefs.containsKey("defaultCheckParam_$Model")) {
+          _out_param = prefs.getBool("defaultCheckParam_$Model");
+        }
+      }
     });
   }
 
@@ -162,6 +187,9 @@ class _MyHomePageState extends State<MyHomePage> {
       });
 
       MotoPath = targetpath;
+
+      // モデル固有の設定を読み込む
+      _loadConfig();
     }
   }
 
@@ -291,15 +319,72 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _nameConfigController = TextEditingController();
   final TextEditingController _lensConfigController = TextEditingController();
 
-  void _writeConfig() async {
+  void _writeConfig(bool withModel) async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString("insertName", _nameConfigController.text);
-    prefs.setBool("defaultCheckName", _out_name!);
-    prefs.setBool("defaultCheckStamp", _out_stamp!);
-    prefs.setBool("defaultCheckMake", _out_make!);
-    prefs.setBool("defaultCheckModel", _out_model!);
-    prefs.setBool("defaultCheckLens", _out_lens!);
-    prefs.setBool("defaultCheckParam", _out_param!);
+    if (withModel) {
+      if (Model == "") {
+        setState(() {
+          FlutterToastr.show("モデル名がExifに入ってる写真を読み込んでくれ", context,
+              duration: FlutterToastr.lengthShort,
+              position: FlutterToastr.bottom);
+        });
+        return;
+      }
+
+      // モデル固有の設定を保存
+      prefs.setString("insertName_$Model", _nameConfigController.text);
+      prefs.setBool("defaultCheckName_$Model", _out_name!);
+      prefs.setBool("defaultCheckStamp_$Model", _out_stamp!);
+      prefs.setBool("defaultCheckMake_$Model", _out_make!);
+      prefs.setBool("defaultCheckModel_$Model", _out_model!);
+      prefs.setBool("defaultCheckLens_$Model", _out_lens!);
+      prefs.setBool("defaultCheckParam_$Model", _out_param!);
+    } else {
+      prefs.setString("insertName", _nameConfigController.text);
+      prefs.setBool("defaultCheckName", _out_name!);
+      prefs.setBool("defaultCheckStamp", _out_stamp!);
+      prefs.setBool("defaultCheckMake", _out_make!);
+      prefs.setBool("defaultCheckModel", _out_model!);
+      prefs.setBool("defaultCheckLens", _out_lens!);
+      prefs.setBool("defaultCheckParam", _out_param!);
+    }
+
+    setState(() {
+      FlutterToastr.show("設定は確かに保存したぜ", context,
+          duration: FlutterToastr.lengthShort, position: FlutterToastr.bottom);
+    });
+  }
+
+  void _deleteConfig(bool withModel) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (withModel) {
+      if (Model == "") {
+        setState(() {
+          FlutterToastr.show("モデル名がExifに入ってる写真を読み込んでくれ", context,
+              duration: FlutterToastr.lengthShort,
+              position: FlutterToastr.bottom);
+        });
+        return;
+      }
+
+      // モデル固有の設定を削除
+      prefs.remove("insertName_$Model");
+      prefs.remove("defaultCheckName_$Model");
+      prefs.remove("defaultCheckStamp_$Model");
+      prefs.remove("defaultCheckMake_$Model");
+      prefs.remove("defaultCheckModel_$Model");
+      prefs.remove("defaultCheckLens_$Model");
+      prefs.remove("defaultCheckParam_$Model");
+    } else {
+      prefs.remove("insertName");
+      prefs.remove("defaultCheckName");
+      prefs.remove("defaultCheckStamp");
+      prefs.remove("defaultCheckMake");
+      prefs.remove("defaultCheckModel");
+      prefs.remove("defaultCheckLens");
+      prefs.remove("defaultCheckParam");
+    }
+
     setState(() {
       FlutterToastr.show("設定は確かに保存したぜ", context,
           duration: FlutterToastr.lengthShort, position: FlutterToastr.bottom);
@@ -472,9 +557,36 @@ class _MyHomePageState extends State<MyHomePage> {
             value: _out_param,
             onChanged: _handleCheckboxOutParam,
           ),
+          const SizedBox(
+            height: 30,
+          ),
           ElevatedButton(
-            onPressed: _writeConfig,
+            onPressed: () => _writeConfig(false),
             child: const Text("設定のたぐいを保存"),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          ElevatedButton(
+            onPressed: () => _deleteConfig(false),
+            child: const Text("設定のたぐいを削除"),
+          ),
+          const SizedBox(
+            height: 30,
+          ),
+          ElevatedButton(
+            onPressed: () => _writeConfig(true),
+            child: const Text("モデル固有の設定を保存"),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          ElevatedButton(
+            onPressed: () => _deleteConfig(true),
+            child: const Text("モデル固有の設定を削除"),
+          ),
+          const SizedBox(
+            height: 30,
           ),
         ]),
       ),
