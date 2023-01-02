@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:image/image.dart' as imgLib;
 import 'package:flutter_toastr/flutter_toastr.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as pathLib;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,95 +43,50 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  @override
-  void initState() {
-    super.initState();
-
-    _loadConfig();
-  }
-
-  void _loadConfig() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      if (prefs.containsKey("insertName")) {
-        _nameConfigController.text = prefs.getString("insertName")!;
-      }
-      if (prefs.containsKey("defaultCheckName")) {
-        _out_name = prefs.getBool("defaultCheckName");
-      }
-      if (prefs.containsKey("defaultCheckStamp")) {
-        _out_stamp = prefs.getBool("defaultCheckStamp");
-      }
-      if (prefs.containsKey("defaultCheckMake")) {
-        _out_make = prefs.getBool("defaultCheckMake");
-      }
-      if (prefs.containsKey("defaultCheckModel")) {
-        _out_model = prefs.getBool("defaultCheckModel");
-      }
-      if (prefs.containsKey("defaultCheckLens")) {
-        _out_lens = prefs.getBool("defaultCheckLens");
-      }
-      if (prefs.containsKey("defaultCheckParam")) {
-        _out_param = prefs.getBool("defaultCheckParam");
-      }
-
-      // モデル固有の設定を呼び出す
-      if (Model != "") {
-        if (prefs.containsKey("insertName_$Model")) {
-          _nameConfigController.text = prefs.getString("insertName_$Model")!;
-        }
-        if (prefs.containsKey("defaultCheckName_$Model")) {
-          _out_name = prefs.getBool("defaultCheckName_$Model");
-        }
-        if (prefs.containsKey("defaultCheckStamp_$Model")) {
-          _out_stamp = prefs.getBool("defaultCheckStamp_$Model");
-        }
-        if (prefs.containsKey("defaultCheckMake_$Model")) {
-          _out_make = prefs.getBool("defaultCheckMake_$Model");
-        }
-        if (prefs.containsKey("defaultCheckModel_$Model")) {
-          _out_model = prefs.getBool("defaultCheckModel_$Model");
-        }
-        if (prefs.containsKey("defaultCheckLens_$Model")) {
-          _out_lens = prefs.getBool("defaultCheckLens_$Model");
-        }
-        if (prefs.containsKey("defaultCheckParam_$Model")) {
-          _out_param = prefs.getBool("defaultCheckParam_$Model");
-        }
-      }
-    });
-  }
-
+  // #region 選択したファイル情報
   File? pickedImage;
+  String MotoPath = "";
+  String FileName = "";
+  // #endregion
 
+  // #region 取得したExif情報
   String Make = "";
   String Model = "";
   String Lens = "";
   String ISOSpeedRatings = "";
   String ExposureTime = "";
   String FNumber = "";
-  String MotoPath = "";
   String TimeStamp = "";
+  // #endregion
+
+  // #region 文字入れする情報
+  bool? _out_name = true;
+  bool? _out_stamp = true;
+  bool? _out_make = true;
+  bool? _out_model = true;
+  bool? _out_lens = true;
+  bool? _out_param = true;
+  // #endregion
+
+  // #region テキストボックスのコントローラー
+  final TextEditingController _nameConfigController = TextEditingController();
+  final TextEditingController _lensConfigController = TextEditingController();
+  // #endregion
+
+  // #region 画像処理
 
   void _selectImage() async {
     String targetpath = "";
 
     try {
-      if (Platform.isAndroid) {
-        final ImagePicker _picker = ImagePicker();
-        final XFile? image =
-            await _picker.pickImage(source: ImageSource.gallery);
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ["jpg", "jpeg", "JPG", "JPEG"]);
 
-        targetpath = image!.path;
+      if (result != null) {
+        targetpath = result.files.single.path!;
       } else {
-        FilePickerResult? result = await FilePicker.platform
-            .pickFiles(allowedExtensions: ["jpg", "jpeg", "JPG", "JPEG"]);
-
-        if (result != null) {
-          targetpath = result.files.single.path!;
-        } else {
-          // User canceled the picker
-        }
+        // User canceled the picker
       }
     } catch (ex) {
       setState(() {
@@ -141,56 +97,61 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     if (targetpath != "") {
-      final tags =
-          await readExifFromBytes(await File(targetpath).readAsBytes());
-
-      if (kDebugMode) {
-        for (var r in tags.keys) {
-          print("$r : ${tags[r]}");
-        }
-      }
-
       setState(() {
         pickedImage = File(targetpath);
-
-        if (tags.containsKey("Image DateTime")) {
-          DateFormat outputFormat = DateFormat('yy.MM.dd HH:mm');
-          TimeStamp = outputFormat.format(DateFormat("yyyy:MM:dd HH:mm:ss")
-              .parse(tags["Image DateTime"]!.printable));
-        }
-        if (tags.containsKey("Image Make")) {
-          Make = tags["Image Make"]!.printable.trimRight();
-        }
-        if (tags.containsKey("Image Model")) {
-          Model = tags["Image Model"]!.printable.trimRight();
-        }
-        if (tags.containsKey("EXIF LensModel")) {
-          Lens = tags["EXIF LensModel"]!.printable.trimRight();
-        } else {
-          Lens = "";
-        }
-        _lensConfigController.text = Lens;
-        if (tags.containsKey("EXIF ISOSpeedRatings")) {
-          ISOSpeedRatings = tags["EXIF ISOSpeedRatings"]!.printable.trimRight();
-        }
-        if (tags.containsKey("EXIF ExposureTime")) {
-          ExposureTime = tags["EXIF ExposureTime"]!.printable.trimRight();
-        }
-        if (tags.containsKey("EXIF FNumber")) {
-          FNumber = tags["EXIF FNumber"]!.printable.trimRight();
-          if (FNumber.contains("/")) {
-            FNumber = (double.parse(FNumber.split("/")[0]) /
-                    double.parse(FNumber.split("/")[1]))
-                .toString();
-          }
-        }
+        FileName = pathLib.basename(File(targetpath).path);
+        MotoPath = targetpath;
       });
+      _loadImage();
 
-      MotoPath = targetpath;
-
+      _loadImage();
       // モデル固有の設定を読み込む
       _loadConfig();
     }
+  }
+
+  void _loadImage() async {
+    final tags = await readExifFromBytes(await pickedImage!.readAsBytes());
+
+    if (kDebugMode) {
+      for (var r in tags.keys) {
+        print("$r : ${tags[r]}");
+      }
+    }
+
+    setState(() {
+      if (tags.containsKey("Image DateTime")) {
+        DateFormat outputFormat = DateFormat('yy.MM.dd HH:mm');
+        TimeStamp = outputFormat.format(DateFormat("yyyy:MM:dd HH:mm:ss")
+            .parse(tags["Image DateTime"]!.printable));
+      }
+      if (tags.containsKey("Image Make")) {
+        Make = tags["Image Make"]!.printable.trimRight();
+      }
+      if (tags.containsKey("Image Model")) {
+        Model = tags["Image Model"]!.printable.trimRight();
+      }
+      if (tags.containsKey("EXIF LensModel")) {
+        Lens = tags["EXIF LensModel"]!.printable.trimRight();
+      } else {
+        Lens = "";
+      }
+      _lensConfigController.text = Lens;
+      if (tags.containsKey("EXIF ISOSpeedRatings")) {
+        ISOSpeedRatings = tags["EXIF ISOSpeedRatings"]!.printable.trimRight();
+      }
+      if (tags.containsKey("EXIF ExposureTime")) {
+        ExposureTime = tags["EXIF ExposureTime"]!.printable.trimRight();
+      }
+      if (tags.containsKey("EXIF FNumber")) {
+        FNumber = tags["EXIF FNumber"]!.printable.trimRight();
+        if (FNumber.contains("/")) {
+          FNumber = (double.parse(FNumber.split("/")[0]) /
+                  double.parse(FNumber.split("/")[1]))
+              .toString();
+        }
+      }
+    });
   }
 
   void _writeImage() async {
@@ -264,60 +225,156 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
+  // #endregion
 
-  Widget _imageViewer() {
-    return Expanded(
-        child: pickedImage != null
-            ? Padding(
-                padding: const EdgeInsets.all(5),
-                child: Image.file(pickedImage!))
-            : const Center(child: Text("No Image")));
+  // #region 次ファイル前ファイル
+  void _nextFile() async {
+    if (Platform.isAndroid) {
+      return;
+    }
+
+    try {
+      var dir = Directory(pathLib.dirname(pickedImage!.path));
+      List<String> filelist = [];
+      for (var f in await dir.list().toList()) {
+        filelist.add(f.path);
+      }
+      var idx = filelist.indexOf(pickedImage!.path);
+      setState(() {
+        pickedImage = File(filelist[idx + 1]);
+        FileName = pathLib.basename(filelist[idx + 1]);
+        MotoPath = filelist[idx + 1];
+      });
+      _loadImage();
+    } catch (e) {
+      setState(() {
+        FlutterToastr.show("次のファイルは読めないぜ", context,
+            duration: FlutterToastr.lengthShort,
+            position: FlutterToastr.bottom);
+      });
+    }
   }
 
-  bool? _out_name = true;
+  void _prevFile() async {
+    if (Platform.isAndroid) {
+      return;
+    }
+    try {
+      var dir = Directory(pathLib.dirname(pickedImage!.path));
+      List<String> filelist = [];
+      for (var f in await dir.list().toList()) {
+        filelist.add(f.path);
+      }
+      var idx = filelist.indexOf(pickedImage!.path);
+      setState(() {
+        pickedImage = File(filelist[idx - 1]);
+        FileName = pathLib.basename(filelist[idx - 1]);
+        MotoPath = filelist[idx - 1];
+      });
+      _loadImage();
+    } catch (e) {
+      setState(() {
+        FlutterToastr.show("前のファイルは読めないぜ", context,
+            duration: FlutterToastr.lengthShort,
+            position: FlutterToastr.bottom);
+      });
+    }
+  }
+  // #endregion
+
+  // #region チェックボックスのイベントハンドラ
+
   void _handleCheckboxOutName(bool? e) {
     setState(() {
       _out_name = e;
     });
   }
 
-  bool? _out_stamp = true;
   void _handleCheckboxOutStamp(bool? e) {
     setState(() {
       _out_stamp = e;
     });
   }
 
-  bool? _out_make = true;
   void _handleCheckboxOutMake(bool? e) {
     setState(() {
       _out_make = e;
     });
   }
 
-  bool? _out_model = true;
   void _handleCheckboxOutModel(bool? e) {
     setState(() {
       _out_model = e;
     });
   }
 
-  bool? _out_lens = true;
   void _handleCheckboxOutLens(bool? e) {
     setState(() {
       _out_lens = e;
     });
   }
 
-  bool? _out_param = true;
   void _handleCheckboxOutParam(bool? e) {
     setState(() {
       _out_param = e;
     });
   }
 
-  final TextEditingController _nameConfigController = TextEditingController();
-  final TextEditingController _lensConfigController = TextEditingController();
+  // #endregion
+
+  // #region 設定のたぐい
+
+  void _loadConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (prefs.containsKey("insertName")) {
+        _nameConfigController.text = prefs.getString("insertName")!;
+      }
+      if (prefs.containsKey("defaultCheckName")) {
+        _out_name = prefs.getBool("defaultCheckName");
+      }
+      if (prefs.containsKey("defaultCheckStamp")) {
+        _out_stamp = prefs.getBool("defaultCheckStamp");
+      }
+      if (prefs.containsKey("defaultCheckMake")) {
+        _out_make = prefs.getBool("defaultCheckMake");
+      }
+      if (prefs.containsKey("defaultCheckModel")) {
+        _out_model = prefs.getBool("defaultCheckModel");
+      }
+      if (prefs.containsKey("defaultCheckLens")) {
+        _out_lens = prefs.getBool("defaultCheckLens");
+      }
+      if (prefs.containsKey("defaultCheckParam")) {
+        _out_param = prefs.getBool("defaultCheckParam");
+      }
+
+      // モデル固有の設定を呼び出す
+      if (Model != "") {
+        if (prefs.containsKey("insertName_$Model")) {
+          _nameConfigController.text = prefs.getString("insertName_$Model")!;
+        }
+        if (prefs.containsKey("defaultCheckName_$Model")) {
+          _out_name = prefs.getBool("defaultCheckName_$Model");
+        }
+        if (prefs.containsKey("defaultCheckStamp_$Model")) {
+          _out_stamp = prefs.getBool("defaultCheckStamp_$Model");
+        }
+        if (prefs.containsKey("defaultCheckMake_$Model")) {
+          _out_make = prefs.getBool("defaultCheckMake_$Model");
+        }
+        if (prefs.containsKey("defaultCheckModel_$Model")) {
+          _out_model = prefs.getBool("defaultCheckModel_$Model");
+        }
+        if (prefs.containsKey("defaultCheckLens_$Model")) {
+          _out_lens = prefs.getBool("defaultCheckLens_$Model");
+        }
+        if (prefs.containsKey("defaultCheckParam_$Model")) {
+          _out_param = prefs.getBool("defaultCheckParam_$Model");
+        }
+      }
+    });
+  }
 
   void _writeConfig(bool withModel) async {
     final prefs = await SharedPreferences.getInstance();
@@ -391,6 +448,16 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  // #endregion
+
+  // #region 画面描画
+  @override
+  void initState() {
+    super.initState();
+
+    _loadConfig();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -401,7 +468,12 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Row(
           mainAxisSize: MainAxisSize.max,
           children: [
-            _imageViewer(),
+            Expanded(
+                child: pickedImage != null
+                    ? Padding(
+                        padding: const EdgeInsets.all(5),
+                        child: Image.file(pickedImage!))
+                    : const Center(child: Text("No Image"))),
             SizedBox(
               width: 400,
               child: ListView(
@@ -412,6 +484,29 @@ class _MyHomePageState extends State<MyHomePage> {
                       onPressed: _selectImage,
                       child: const Text("画像選択"),
                     ),
+                  ),
+                  Row(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: ElevatedButton(
+                          onPressed: Platform.isAndroid ? null : _prevFile,
+                          child: const Text("＜"),
+                        ),
+                      ),
+                      Expanded(
+                          child: Text(
+                        FileName,
+                        textAlign: TextAlign.center,
+                      )),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: ElevatedButton(
+                          onPressed: Platform.isAndroid ? null : _nextFile,
+                          child: const Text("＞"),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(
                     height: 20,
@@ -592,4 +687,5 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+  // #endregion
 }
