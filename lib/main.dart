@@ -102,7 +102,6 @@ class _MyHomePageState extends State<MyHomePage> {
         FileName = pathLib.basename(File(targetpath).path);
         MotoPath = targetpath;
       });
-      _loadImage();
 
       _loadImage();
       // モデル固有の設定を読み込む
@@ -112,12 +111,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _loadImage() async {
     final tags = await readExifFromBytes(await pickedImage!.readAsBytes());
-
-    if (kDebugMode) {
-      for (var r in tags.keys) {
-        print("$r : ${tags[r]}");
-      }
-    }
 
     setState(() {
       if (tags.containsKey("Image DateTime")) {
@@ -246,6 +239,8 @@ class _MyHomePageState extends State<MyHomePage> {
         MotoPath = filelist[idx + 1];
       });
       _loadImage();
+      // モデル固有の設定を読み込む
+      _loadConfig();
     } catch (e) {
       setState(() {
         FlutterToastr.show("次のファイルは読めないぜ", context,
@@ -272,6 +267,8 @@ class _MyHomePageState extends State<MyHomePage> {
         MotoPath = filelist[idx - 1];
       });
       _loadImage();
+      // モデル固有の設定を読み込む
+      _loadConfig();
     } catch (e) {
       setState(() {
         FlutterToastr.show("前のファイルは読めないぜ", context,
@@ -325,6 +322,8 @@ class _MyHomePageState extends State<MyHomePage> {
   // #region 設定のたぐい
 
   void _loadConfig() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       if (prefs.containsKey("insertName")) {
@@ -351,26 +350,37 @@ class _MyHomePageState extends State<MyHomePage> {
 
       // モデル固有の設定を呼び出す
       if (Model != "") {
-        if (prefs.containsKey("insertName_$Model")) {
-          _nameConfigController.text = prefs.getString("insertName_$Model")!;
+        if (prefs.containsKey("insertName_$Model".replaceAll(" ", "_"))) {
+          print("$Modelの設定を読み込み".replaceAll(" ", "_"));
+          _nameConfigController.text =
+              prefs.getString("insertName_$Model".replaceAll(" ", "_"))!;
         }
-        if (prefs.containsKey("defaultCheckName_$Model")) {
-          _out_name = prefs.getBool("defaultCheckName_$Model");
+        if (prefs.containsKey("defaultCheckName_$Model".replaceAll(" ", "_"))) {
+          _out_name =
+              prefs.getBool("defaultCheckName_$Model".replaceAll(" ", "_"));
         }
-        if (prefs.containsKey("defaultCheckStamp_$Model")) {
-          _out_stamp = prefs.getBool("defaultCheckStamp_$Model");
+        if (prefs
+            .containsKey("defaultCheckStamp_$Model".replaceAll(" ", "_"))) {
+          _out_stamp =
+              prefs.getBool("defaultCheckStamp_$Model".replaceAll(" ", "_"));
         }
-        if (prefs.containsKey("defaultCheckMake_$Model")) {
-          _out_make = prefs.getBool("defaultCheckMake_$Model");
+        if (prefs.containsKey("defaultCheckMake_$Model".replaceAll(" ", "_"))) {
+          _out_make =
+              prefs.getBool("defaultCheckMake_$Model".replaceAll(" ", "_"));
         }
-        if (prefs.containsKey("defaultCheckModel_$Model")) {
-          _out_model = prefs.getBool("defaultCheckModel_$Model");
+        if (prefs
+            .containsKey("defaultCheckModel_$Model".replaceAll(" ", "_"))) {
+          _out_model =
+              prefs.getBool("defaultCheckModel_$Model".replaceAll(" ", "_"));
         }
-        if (prefs.containsKey("defaultCheckLens_$Model")) {
-          _out_lens = prefs.getBool("defaultCheckLens_$Model");
+        if (prefs.containsKey("defaultCheckLens_$Model".replaceAll(" ", "_"))) {
+          _out_lens =
+              prefs.getBool("defaultCheckLens_$Model".replaceAll(" ", "_"));
         }
-        if (prefs.containsKey("defaultCheckParam_$Model")) {
-          _out_param = prefs.getBool("defaultCheckParam_$Model");
+        if (prefs
+            .containsKey("defaultCheckParam_$Model".replaceAll(" ", "_"))) {
+          _out_param =
+              prefs.getBool("defaultCheckParam_$Model".replaceAll(" ", "_"));
         }
       }
     });
@@ -389,13 +399,17 @@ class _MyHomePageState extends State<MyHomePage> {
       }
 
       // モデル固有の設定を保存
-      prefs.setString("insertName_$Model", _nameConfigController.text);
-      prefs.setBool("defaultCheckName_$Model", _out_name!);
-      prefs.setBool("defaultCheckStamp_$Model", _out_stamp!);
-      prefs.setBool("defaultCheckMake_$Model", _out_make!);
-      prefs.setBool("defaultCheckModel_$Model", _out_model!);
-      prefs.setBool("defaultCheckLens_$Model", _out_lens!);
-      prefs.setBool("defaultCheckParam_$Model", _out_param!);
+      prefs.setString(
+          "insertName_$Model".replaceAll(" ", "_"), _nameConfigController.text);
+      prefs.setBool("defaultCheckName_$Model".replaceAll(" ", "_"), _out_name!);
+      prefs.setBool(
+          "defaultCheckStamp_$Model".replaceAll(" ", "_"), _out_stamp!);
+      prefs.setBool("defaultCheckMake_$Model".replaceAll(" ", "_"), _out_make!);
+      prefs.setBool(
+          "defaultCheckModel_$Model".replaceAll(" ", "_"), _out_model!);
+      prefs.setBool("defaultCheckLens_$Model".replaceAll(" ", "_"), _out_lens!);
+      prefs.setBool(
+          "defaultCheckParam_$Model".replaceAll(" ", "_"), _out_param!);
     } else {
       prefs.setString("insertName", _nameConfigController.text);
       prefs.setBool("defaultCheckName", _out_name!);
@@ -407,8 +421,11 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     setState(() {
-      FlutterToastr.show("設定は確かに保存したぜ", context,
-          duration: FlutterToastr.lengthShort, position: FlutterToastr.bottom);
+      FlutterToastr.show(
+          withModel ? "$Modelの設定を保存したぜ" : "設定は確かに保存したぜ".replaceAll(" ", "_"),
+          context,
+          duration: FlutterToastr.lengthShort,
+          position: FlutterToastr.bottom);
     });
   }
 
@@ -425,13 +442,13 @@ class _MyHomePageState extends State<MyHomePage> {
       }
 
       // モデル固有の設定を削除
-      prefs.remove("insertName_$Model");
-      prefs.remove("defaultCheckName_$Model");
-      prefs.remove("defaultCheckStamp_$Model");
-      prefs.remove("defaultCheckMake_$Model");
-      prefs.remove("defaultCheckModel_$Model");
-      prefs.remove("defaultCheckLens_$Model");
-      prefs.remove("defaultCheckParam_$Model");
+      prefs.remove("insertName_$Model".replaceAll(" ", "_"));
+      prefs.remove("defaultCheckName_$Model".replaceAll(" ", "_"));
+      prefs.remove("defaultCheckStamp_$Model".replaceAll(" ", "_"));
+      prefs.remove("defaultCheckMake_$Model".replaceAll(" ", "_"));
+      prefs.remove("defaultCheckModel_$Model".replaceAll(" ", "_"));
+      prefs.remove("defaultCheckLens_$Model".replaceAll(" ", "_"));
+      prefs.remove("defaultCheckParam_$Model".replaceAll(" ", "_"));
     } else {
       prefs.remove("insertName");
       prefs.remove("defaultCheckName");
